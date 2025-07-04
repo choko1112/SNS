@@ -7,11 +7,11 @@
 </head>
 <body>
   <h1>SNS</h1>
-  <form action="/post" method="POST">
-    <textarea name="content" rows="2" cols="40" placeholder="投稿内容"></textarea>
-    <button type="submit">投稿</button>
-  </form>
-  <div id="posts"></div>
+<form id="postForm">
+  <textarea id="postText" rows="2" cols="40" placeholder="投稿内容" required></textarea>
+  <button type="submit">投稿</button>
+</form>
+<div id="posts"></div>
   <script src="/script.js"></script>
 </body>
 </html> 

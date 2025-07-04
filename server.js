@@ -13,9 +13,10 @@ app.get('/', (req, res) => {
 });
 
 app.post('/post', (req, res) => {
-  const { content } = req.body;
-  if (content) posts.push(content);
-  res.redirect('/');
+  const { text } = req.body;
+  const date = new Date().toISOString();
+  posts.push({text, date});
+  res.sendStatus(201);
 });
 
 app.get('/posts', (req, res) => {
