@@ -55,6 +55,22 @@ function loadPosts(){
         // 返信フォーム
         const replyForm = document.createElement('form');
         replyForm.style.marginLeft = '20px';
+
+        // ここで先にinputを作成
+        const replyInput = document.createElement('input');
+        replyInput.type = 'text';
+        replyInput.placeholder = '返信を書く';
+        replyInput.required = true;
+        replyInput.style.fontSize = '0.8em';
+        replyForm.appendChild(replyInput);
+
+        const replyBtn = document.createElement('button');
+        replyBtn.type = 'submit';
+        replyBtn.textContent = '返信';
+        replyBtn.style.fontSize = '0.8em';
+        replyForm.appendChild(replyBtn);
+
+        // onsubmitはinput定義後に
         replyForm.onsubmit = function(e) {
           e.preventDefault();
           const replyText = replyInput.value;
@@ -67,17 +83,7 @@ function loadPosts(){
           });
           replyInput.value = '';
         };
-        const replyInput = document.createElement('input');
-        replyInput.type = 'text';
-        replyInput.placeholder = '返信を書く';
-        replyInput.required = true;
-        replyInput.style.fontSize = '0.8em';
-        replyForm.appendChild(replyInput);
-        const replyBtn = document.createElement('button');
-        replyBtn.type = 'submit';
-        replyBtn.textContent = '返信';
-        replyBtn.style.fontSize = '0.8em';
-        replyForm.appendChild(replyBtn);
+
         div.appendChild(replyForm);
 
         postsDiv.appendChild(div);
