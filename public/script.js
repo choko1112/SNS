@@ -5,6 +5,7 @@ window.onload = function() {
   form.onsubmit = function(e) {
     e.preventDefault(); // ページリロードを防ぐ
     const text = document.getElementById('postText').value;
+    if (!text.trim()) return; // 空の投稿を防ぐ
     fetch('/post', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -22,7 +23,8 @@ function loadPosts(){
     .then(posts => {
       const postsDiv = document.getElementById('posts');
       postsDiv.innerHTML = '';
-      posts.forEach((post, i) => {
+      // postデータに一意のidが含まれるようになった
+      posts.forEach((post, i) => { 
         const div = document.createElement('div');
         div.style.marginBottom = '20px';
 
@@ -56,7 +58,6 @@ function loadPosts(){
         const replyForm = document.createElement('form');
         replyForm.style.marginLeft = '20px';
 
-        // ここで先にinputを作成
         const replyInput = document.createElement('input');
         replyInput.type = 'text';
         replyInput.placeholder = '返信を書く';
@@ -70,14 +71,17 @@ function loadPosts(){
         replyBtn.style.fontSize = '0.8em';
         replyForm.appendChild(replyBtn);
 
-        // onsubmitはinput定義後に
+        // [変更] 返信フォームの送信処理
         replyForm.onsubmit = function(e) {
           e.preventDefault();
           const replyText = replyInput.value;
+          if (!replyText.trim()) return; // 空の返信を防ぐ
+          
           fetch('/reply', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `postIndex=${i}&text=${encodeURIComponent(replyText)}`
+            // postIndexの代わりに、投稿の一意なIDである post.id を送信する
+            body: `postId=${post.id}&text=${encodeURIComponent(replyText)}`
           }).then(() => {
             loadPosts();
           });
@@ -90,4 +94,3 @@ function loadPosts(){
       });
     });
 };
-

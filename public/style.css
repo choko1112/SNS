@@ -1,3 +1,29 @@
 body{
   background: rgb(244, 255, 238);
+  font-family:'Yu Gothic',Meiryo,'MS PGothic';
+  
+}
+
+.container {
+  max-width: 400px;
+  margin: 20px 0 20px 20px;
+  padding: 20px;
+}
+
+#postForm {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 30px;
+}
+
+#postText {
+  width: 80%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 16px;
+  resize: vertical;
+  min-height: 50px;
 }
