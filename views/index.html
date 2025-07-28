@@ -2,18 +2,73 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>SNS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>掲示板</title>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>SNS</h1>
-    <form id="postForm">
-    <textarea id="postText" rows="2" cols="40" placeholder="投稿内容" required></textarea>
-    <button type="submit">投稿</button>
-    </form>
-    <div id="posts"></div>
+  <header>
+    <h1>掲示板</h1>
+  </header>
+
+  <div class="main-container">
+
+    <!-- 左: 投稿フォーム-->
+    <aside class="left-column">
+      <div id="post-form-container">
+        <h2>投稿フォーム</h2>
+        <form id="postForm" enctype="multipart/form-data">
+          <p>現在表示中のスレッドに投稿します</p>
+          <div class="form-group">
+            <label for="postText">投稿内容:</label>
+            <textarea id="postText" rows="4" required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="postImage">画像 (任意)</label>
+            <input type="file" id="postImage" name="image" accept="image/*">
+          </div>
+          <button type="submit">投稿する</button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- 中央: スレッド内容 -->
+    <main class="center-column">
+      <div id="thread-content">
+        <p class="placeholder">右側のリストからスレッドを選択してください。</p>
+      </div>
+    </main>
+
+    <!-- 右: スレッド一覧 -->
+    <aside class="right-column">
+      <h2>スレッド一覧</h2>
+      <div id="thread-list-container">
+        <!-- スレッドのリストをここに表示  -->
+      </div>
+      <hr>
+      <div id="create-thread-form-container">
+        <h3>新しいスレッドを作成</h3>
+        <form id="createThreadForm">
+          <div class="form-group">
+            <label for="threadTitle">スレッドタイトル:</label>
+            <input type="text" id="threadTitle" required>
+          </div>
+          <div class="form-group">
+            <label for="threadCategory">カテゴリ:</label>
+            <select id="threadCategory" required>
+              <option value="LEISURE">レジャー</option>
+              <option value="FOOD">食べ物、料理</option>
+              <option value="ENTERTAINMENT">アニメ、映画</option>
+              <option value="OTHER">その他</option>
+            </select>
+          </div>
+          <button type="submit">スレッドを作成</button>
+        </form>
+      </div>
+    </aside>
+    
   </div>
+
   <script src="/script.js"></script>
 </body>
 </html> 

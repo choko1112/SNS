@@ -1,96 +1,243 @@
+// グローバル変数として現在表示中のスレッドIDを保持
+let currentThreadId = null;
+const categoryMap = {
+    LEISURE: "レジャー",
+    FOOD: "食べ物、料理",
+    ENTERTAINMENT: "アニメ、映画",
+    OTHER: "その他"
+};
+
+// --- 初期化処理 ---
 window.onload = function() {
-  loadPosts();
-
-  const form = document.getElementById('postForm');
-  form.onsubmit = function(e) {
-    e.preventDefault(); // ページリロードを防ぐ
-    const text = document.getElementById('postText').value;
-    if (!text.trim()) return; // 空の投稿を防ぐ
-    fetch('/post', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `text=${encodeURIComponent(text)}`
-    }).then(() => {
-      document.getElementById('postText').value = '';
-      loadPosts();
-    });
-  };
+    loadThreadList();
+    setupEventListeners();
 };
 
-function loadPosts(){
-  fetch('/posts')
-    .then(res => res.json())
-    .then(posts => {
-      const postsDiv = document.getElementById('posts');
-      postsDiv.innerHTML = '';
-      // postデータに一意のidが含まれるようになった
-      posts.forEach((post, i) => { 
-        const div = document.createElement('div');
-        div.style.marginBottom = '20px';
+function setupEventListeners() {
+    // スレッド作成フォーム
+    const createThreadForm = document.getElementById('createThreadForm');
+    createThreadForm.addEventListener('submit', handleCreateThread);
 
-        // 投稿文
-        const postText = document.createElement('div');
-        postText.textContent = `${i+1}: ${post.text}`;
-        div.appendChild(postText);
+    // 投稿フォーム
+    const postForm = document.getElementById('postForm');
+    postForm.addEventListener('submit', handleCreatePost);
+}
 
-        // 日時
-        const date = new Date(post.date);
-        const dayofweek = ["日","月","火","水","木","金","土"];
-        const dateStr = `${date.getFullYear()}年${date.getMonth()+1}月${date.getDate()}日(${dayofweek[date.getDay()]})${date.getHours()}時${date.getMinutes()}分${date.getSeconds()}秒`;
-        const dateDiv = document.createElement('div');
-        dateDiv.textContent = dateStr;
-        dateDiv.style.fontSize = '0.8em';
-        div.appendChild(dateDiv);
 
-        // 返信表示
-        if (post.replies && post.replies.length > 0) {
-          post.replies.forEach(reply => {
-            const replyDiv = document.createElement('div');
-            replyDiv.style.fontSize = '0.7em';
-            replyDiv.style.marginLeft = '20px';
-            replyDiv.style.color = '#555';
-            replyDiv.textContent = `↳ ${reply.text} (${new Date(reply.date).getHours()}時${new Date(reply.date).getMinutes()}分${new Date(reply.date).getSeconds()}秒)`;
-            div.appendChild(replyDiv);
-          });
+// --- スレッド関連の関数 ---
+
+// 1. スレッド一覧をサーバーから取得して表示する
+async function loadThreadList() {
+    try {
+        const res = await fetch('/threads');
+        const threads = await res.json();
+        
+        // カテゴリごとにスレッドをグループ化
+        const threadsByCategory = threads.reduce((acc, thread) => {
+            if (!acc[thread.category]) {
+                acc[thread.category] = [];
+            }
+            acc[thread.category].push(thread);
+            return acc;
+        }, {});
+
+        const container = document.getElementById('thread-list-container');
+        container.innerHTML = ''; // コンテナをクリア
+
+        for (const category in threadsByCategory) {
+            const categoryName = categoryMap[category] || 'その他';
+            const categoryHeader = document.createElement('h3');
+            categoryHeader.textContent = categoryName;
+            container.appendChild(categoryHeader);
+
+            const ul = document.createElement('ul');
+            threadsByCategory[category].forEach(thread => {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = '#';
+                a.textContent = thread.title;
+                a.onclick = (e) => {
+                    e.preventDefault();
+                    loadThreadContent(thread.id);
+                };
+                li.appendChild(a);
+                ul.appendChild(li);
+            });
+            container.appendChild(ul);
         }
+    } catch (error) {
+        console.error('スレッド一覧の読み込みに失敗しました:', error);
+    }
+}
 
-        // 返信フォーム
-        const replyForm = document.createElement('form');
-        replyForm.style.marginLeft = '20px';
+// 2. 特定のスレッドの内容を読み込む
+async function loadThreadContent(threadId) {
+    currentThreadId = threadId; // 現在のスレッドIDを更新
+    try {
+        const res = await fetch(`/threads/${threadId}`);
+        if (!res.ok) throw new Error('スレッドの読み込みに失敗しました');
+        
+        const thread = await res.json();
+        const container = document.getElementById('thread-content');
+        container.innerHTML = ''; // コンテナをクリア
 
-        const replyInput = document.createElement('input');
-        replyInput.type = 'text';
-        replyInput.placeholder = '返信を書く';
-        replyInput.required = true;
-        replyInput.style.fontSize = '0.8em';
-        replyForm.appendChild(replyInput);
+        // スレッドヘッダー
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'thread-header';
+        headerDiv.innerHTML = `
+            <span class="category">${categoryMap[thread.category]}</span>
+            <h2>${thread.title}</h2>
+        `;
+        container.appendChild(headerDiv);
 
-        const replyBtn = document.createElement('button');
-        replyBtn.type = 'submit';
-        replyBtn.textContent = '返信';
-        replyBtn.style.fontSize = '0.8em';
-        replyForm.appendChild(replyBtn);
+        // 投稿の表示
+        if (thread.posts.length === 0) {
+            container.innerHTML += '<p>まだ投稿がありません。</p>';
+        } else {
+            thread.posts.forEach(post => {
+                const postElement = createPostElement(post);
+                container.appendChild(postElement);
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        document.getElementById('thread-content').innerHTML = '<p>エラーが発生しました。</p>';
+    }
+}
 
-        // [変更] 返信フォームの送信処理
-        replyForm.onsubmit = function(e) {
-          e.preventDefault();
-          const replyText = replyInput.value;
-          if (!replyText.trim()) return; // 空の返信を防ぐ
-          
-          fetch('/reply', {
+// 3. 新しいスレッドを作成する
+async function handleCreateThread(e) {
+    e.preventDefault();
+    const title = document.getElementById('threadTitle').value;
+    const category = document.getElementById('threadCategory').value;
+
+    try {
+        const res = await fetch('/threads', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            // postIndexの代わりに、投稿の一意なIDである post.id を送信する
-            body: `postId=${post.id}&text=${encodeURIComponent(replyText)}`
-          }).then(() => {
-            loadPosts();
-          });
-          replyInput.value = '';
-        };
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, category })
+        });
+        if (!res.ok) throw new Error('スレッドの作成に失敗しました');
+        
+        document.getElementById('threadTitle').value = '';
+        loadThreadList(); // スレッド一覧を再読み込み
+        const newThread = await res.json();
+        loadThreadContent(newThread.id); // 作成したスレッドをすぐに表示
+    } catch (error) {
+        console.error(error);
+        alert('スレッドの作成に失敗しました。');
+    }
+}
 
-        div.appendChild(replyForm);
 
-        postsDiv.appendChild(div);
-      });
+// --- 投稿・返信関連の関数 ---
+
+// 4. 新しい投稿を作成する (画像対応)
+async function handleCreatePost(e) {
+    e.preventDefault();
+    if (!currentThreadId) {
+        alert('投稿するスレッドを選択してください。');
+        return;
+    }
+
+    const form = e.target;
+    const formData = new FormData(form); // FormDataを使って画像とテキストを送信
+    formData.append('text', document.getElementById('postText').value);
+    formData.append('threadId', currentThreadId);
+
+    try {
+        await fetch('/posts', {
+            method: 'POST',
+            body: formData // headersは自動設定されるので不要
+        });
+        document.getElementById('postText').value = '';
+        document.getElementById('postImage').value = '';
+        loadThreadContent(currentThreadId); // 現在のスレッドを再読み込み
+    } catch (error) {
+        console.error('投稿エラー:', error);
+        alert('投稿に失敗しました。');
+    }
+}
+
+// 5. 返信を作成する
+async function handleCreateReply(e, postId) {
+    e.preventDefault();
+    const form = e.target;
+    const input = form.querySelector('input[type="text"]');
+    const text = input.value;
+    if (!text.trim()) return;
+
+    try {
+        await fetch('/reply', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ postId, text })
+        });
+        loadThreadContent(currentThreadId); // 現在のスレッドを再読み込み
+    } catch (error) {
+        console.error('返信エラー:', error);
+    }
+}
+
+// 6. 投稿要素(HTML)を生成するヘルパー関数
+function createPostElement(post) {
+    const div = document.createElement('div');
+    div.className = 'post-card';
+    const dateStr = new Date(post.createdAt).toLocaleString('ja-JP');
+
+    // 画像があればimgタグを追加
+    const imageTag = post.imageUrl ? `<img src="${post.imageUrl}" alt="投稿画像" class="post-image">` : '';
+
+    div.innerHTML = `
+        <div class="post-meta">投稿日時: ${dateStr}</div>
+        <div class="post-text">${escapeHTML(post.text)}</div>
+        ${imageTag}
+    `;
+
+    // 返信エリア
+    const repliesDiv = document.createElement('div');
+    repliesDiv.className = 'replies';
+    if (post.replies && post.replies.length > 0) {
+        post.replies.forEach(reply => {
+            const replyEl = createReplyElement(reply);
+            repliesDiv.appendChild(replyEl);
+        });
+    }
+    div.appendChild(repliesDiv);
+
+    // 返信フォーム
+    const replyForm = document.createElement('form');
+    replyForm.innerHTML = `
+        <input type="text" placeholder="返信を書く" required>
+        <button type="submit">返信</button>
+    `;
+    replyForm.onsubmit = (e) => handleCreateReply(e, post.id);
+    div.appendChild(replyForm);
+
+    return div;
+}
+
+// 7. 返信要素(HTML)を生成するヘルパー関数
+function createReplyElement(reply) {
+    const div = document.createElement('div');
+    div.className = 'reply-card';
+    const dateStr = new Date(reply.createdAt).toLocaleString('ja-JP');
+    div.innerHTML = `
+        <p>${escapeHTML(reply.text)}</p>
+        <small>(${dateStr})</small>
+    `;
+    return div;
+}
+
+// 8. XSS対策のためのHTMLエスケープ関数
+function escapeHTML(str) {
+    return str.replace(/[&<>"']/g, function(match) {
+        return {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[match];
     });
-};
+}

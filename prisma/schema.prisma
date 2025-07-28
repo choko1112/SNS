@@ -13,11 +13,30 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Category {
+  LEISURE
+  FOOD
+  ENTERTAINMENT
+  OTHER
+}
+
+model Thread {
+  id        Int      @id @default(autoincrement())
+  title     String
+  category  Category
+  createdAt DateTime @default(now())
+  posts     Post[]
+}
+
 model Post {
   id        Int      @id @default(autoincrement())
   text      String
+  imageUrl  String?
   createdAt DateTime @default(now())
   replies   Reply[]
+
+  thread    Thread   @relation(fields: [threadId],references: [id])
+  threadId  Int
 }
 
 model Reply {
